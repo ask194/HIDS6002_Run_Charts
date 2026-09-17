@@ -1,0 +1,177 @@
+---
+title: "In-Class Exercise: HbA1c Control Trends — Clinics A & C"
+format:
+  html:
+    toc: true
+    code-tools: true
+execute:
+  echo: true
+  warning: true
+---
+
+## Background
+
+You're a junior data analyst at a healthcare system. Department
+leadership has asked your team for an analysis of **trends in HbA1c
+control at four clinics** — is control improving, holding steady, or
+slipping, clinic by clinic?
+
+Your data engineer pulled the data, and — kind of lazily — handed you
+**three separate files** instead of one clean extract:
+
+- `encounters.csv` — one row per patient encounter, but instead of the
+  clinic name it only lists `provider_id` (apparently linking encounters
+  to clinics was somebody else's job)
+- `labs.csv` — one row per lab result
+- `provider_lookup.csv` — the file that actually maps each `provider_id`
+  to a clinic, which someone should have joined in before handing this
+  to you
+
+Before you got to the data, your senior colleague started this
+document to lay out what's needed — but only got as far as comments.
+The code is yours to write. Today you'll get **Clinics A and C** done;
+the other two are this week's homework.
+
+## What "in control" means here
+
+> **Denominator (per clinic, per month):** number of distinct patients
+> with at least one encounter at that clinic that month.
+>
+> **Numerator (per clinic, per month):** of those, how many have an
+> `HbA1c` lab result recorded **that same month** below 8%. A patient
+> with no HbA1c result that month does not count — a missing test isn't
+> the same as good control.
+
+These files are not clean. Budget real time for step 2.
+
+```{r}
+#| label: setup
+#| message: false
+
+library(readr)
+library(dplyr)
+library(lubridate)
+library(qicharts2)
+```
+
+## 1. Load and look
+
+```{r}
+#| label: load-data
+#| message: false
+
+encounters <- read_csv("data/encounters.csv")
+labs <- read_csv("data/labs.csv")
+lookup <- read_csv("data/provider_lookup.csv")
+```
+
+```{r}
+#| label: explore
+
+glimpse(encounters)
+glimpse(labs)
+glimpse(lookup)
+```
+
+Notice `encounters` has `provider_id`, not `clinic_id` — that's the
+"three files instead of one" problem in a nutshell. Look closely at the
+date columns in both files, and at `result_value` in `labs`, before you
+go further.
+
+## 2. Clean the dates
+
+```{r}
+#| label: parse-dates
+
+# TODO: write a helper that parses a character vector containing a MIX
+# of "YYYY-MM-DD" and "MM/DD/YYYY" strings into a single Date column.
+# Apply it to encounter_date and result_date.
+#
+# Sanity check afterward: zero NAs in either parsed date column.
+```
+
+## 3. Attach clinic_id to every encounter
+
+```{r}
+#| label: crosswalk-join
+
+# TODO: join `encounters` to `provider_lookup` on provider_id, so every
+# encounter row gets the right clinic_id. Confirm zero unmatched rows
+# before moving on -- if you see NAs in clinic_id after the join, don't
+# just drop them; find out why they didn't match.
+```
+
+## 4. Build the monthly denominator
+
+```{r}
+#| label: denominator
+
+# TODO: for Clinics A and C, count DISTINCT patients per clinic per
+# month. Watch out -- a patient can have more than one encounter in the
+# same month, so a plain row count will overcount.
+#
+# Hint: lubridate::floor_date(date, "month") turns any date into the
+# first of its month, a convenient grouping key.
+```
+
+## 5. Build the monthly numerator
+
+```{r}
+#| label: numerator
+
+# TODO: filter `labs` to test_name == "HbA1c". Convert result_value to
+# numeric -- what happens to entries that aren't valid numbers? Remove
+# exact duplicate rows. Then, for each clinic and month, count DISTINCT
+# patients with a qualifying (< 8) result recorded that month.
+#
+# labs alone don't carry clinic_id -- you'll need the joined encounter
+# table from step 3 to know which clinic-month a given result belongs
+# to.
+```
+
+## 6. Put it together
+
+```{r}
+#| label: assemble
+
+# TODO: combine your denominator and numerator tables into one data
+# frame with columns clinic_id, month, denominator, numerator, filtered
+# to Clinic A and Clinic C. A clinic-month with no qualifying result
+# should show numerator = 0, not a missing row.
+```
+
+## 7. Build the run charts
+
+```{r}
+#| label: run-chart-a
+
+# TODO: filter to Clinic A and pass to qic() with chart = "run". A run
+# chart plots the median as a flat reference line and applies the
+# Anhøj runs rules (unusually long runs / unusually few crossings) --
+# it does not use 3-sigma control limits the way a p-chart does.
+```
+
+```{r}
+#| label: run-chart-c
+
+# TODO: repeat for Clinic C.
+```
+
+## 8. Interpret, and draft a one-line status for leadership
+
+For each clinic, inspect the chart object's underlying data
+(`your_object$data`) for the `runs.signal` column, and write 2-3
+sentences plus a one-line summary you could drop into a status update.
+
+*Clinic A:*
+
+> [Is there a signal? What does the pattern of points look like?]
+> **One-line status:** [e.g., "Clinic A: stable, no action needed."]
+
+*Clinic C:*
+
+> [Is there a signal? Does a run chart's "unusually long run / unusually
+> few crossings" logic seem well-suited to whatever pattern you see
+> here, or can you imagine a pattern it would miss?]
+
+> **One-line status:** [your line here]

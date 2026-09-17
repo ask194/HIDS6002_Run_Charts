@@ -1,0 +1,150 @@
+---
+title: "Homework: HbA1c Control Trends — Clinics B & D, and a Simple ITS"
+format:
+  html:
+    toc: true
+    code-tools: true
+execute:
+  echo: true
+  warning: true
+---
+
+## Setup
+
+```{r}
+#| label: setup
+#| message: false
+
+library(readr)
+library(dplyr)
+library(lubridate)
+library(qicharts2)
+```
+
+## Load the data
+
+```{r}
+#| label: load-data
+#| message: false
+
+encounters <- read_csv("data/encounters.csv")
+labs <- read_csv("data/labs.csv")
+lookup <- read_csv("data/provider_lookup.csv")
+```
+
+Same three files as class. This time you're finishing Clinics B and D,
+which have two additional problems A and C didn't.
+
+## Part 1: Build the measure
+
+### Parse dates (same as class)
+
+```{r}
+#| label: parse-dates
+
+# TODO: reuse your mixed-date parser from class on encounter_date and
+# result_date.
+```
+
+### Task 1: standardize the join key, then join
+
+```{r}
+#| label: standardize-and-join
+
+# TODO: first, try the plain join from class:
+#   encounters %>% left_join(lookup, by = "provider_id")
+# and check how many rows come back with a missing clinic_id. Then look
+# at a sample of the unmatched provider_id values -- what's inconsistent
+# about them relative to provider_lookup.csv?
+#
+# TODO: create a standardized version of provider_id on BOTH tables
+# (case + whitespace), then join on the standardized version. Confirm
+# zero unmatched rows afterward.
+```
+
+### Build the denominator
+
+```{r}
+#| label: denominator
+
+# TODO: same logic as class -- distinct patients per clinic per month,
+# filtered to Clinic B and Clinic D.
+```
+
+### Clean the labs and handle Task 2: implausible values
+
+```{r}
+#| label: clean-labs
+
+# TODO: filter to test_name == "HbA1c", convert result_value to numeric,
+# drop non-numeric/missing entries, remove exact duplicates -- same as
+# class.
+#
+# TODO (Task 2): before computing the numerator, add a plausible-range
+# filter on the numeric value (a reasonable range for this exercise is
+# roughly 4-15). Report how many rows this excludes.
+```
+
+### Build the numerator and assemble the measure table
+
+```{r}
+#| label: numerator-and-assemble
+
+# TODO: same join-back-to-clinic-month logic as class, then assemble
+# clinic_id, month, denominator, numerator for Clinics B and D.
+```
+
+## Part 2: Control charts
+
+```{r}
+#| label: chart-b
+
+# TODO: qic() with chart = "p" for Clinic B. Store the result.
+```
+
+*Clinic B interpretation:*
+
+> [3-5 sentences: signal present? sigma or runs? plausible cause? next
+> step?]
+>
+> **One-line status:** [your line here]
+
+```{r}
+#| label: chart-d
+
+# TODO: qic() with chart = "p" for Clinic D.
+```
+
+*Clinic D interpretation:*
+
+> [3-5 sentences.]
+>
+> **One-line status:** [your line here]
+
+## Part 3: A simple interrupted time series (Clinic B)
+
+```{r}
+#| label: its-setup
+
+# TODO: build a data frame for Clinic B with:
+#   - rate = numerator / denominator
+#   - t = a simple 1, 2, 3, ... month counter
+#   - post = 0/1 indicator for month >= 2025-03-01
+#   - t_post = post * (a counter that starts at 1 on the intervention
+#     month and counts up from there, 0 before it)
+```
+
+```{r}
+#| label: its-model
+
+# TODO: fit lm(rate ~ t + post + t_post, data = ...) and look at
+# summary(). Extract/interpret the post and t_post coefficients.
+```
+
+*Interpretation:*
+
+> [What does the `post` coefficient mean, and is it significant? What
+> does `t_post` mean, and is it significant? Does this agree with what
+> the control chart's signal already told you? Explain, in your own
+> words, what each method is actually testing and why they might (or
+> might not) agree.]
