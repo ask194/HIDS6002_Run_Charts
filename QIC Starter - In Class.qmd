@@ -47,7 +47,8 @@ These files are not clean. Budget real time for step 2.
 ```{r}
 #| label: setup
 #| message: false
-
+#install.packages("readr")
+#install.packages("qicharts2")
 library(readr)
 library(dplyr)
 library(lubridate)
@@ -60,9 +61,9 @@ library(qicharts2)
 #| label: load-data
 #| message: false
 
-encounters <- read_csv("data/encounters.csv")
-labs <- read_csv("data/labs.csv")
-lookup <- read_csv("data/provider_lookup.csv")
+encounters <- read_csv("Data/encounters.csv")
+labs <- read_csv("Data/labs.csv")
+lookup <- read_csv("Data/provider_lookup.csv")
 ```
 
 ```{r}
@@ -88,6 +89,7 @@ go further.
 # Apply it to encounter_date and result_date.
 #
 # Sanity check afterward: zero NAs in either parsed date column.
+
 ```
 
 ## 3. Attach clinic_id to every encounter
@@ -99,6 +101,7 @@ go further.
 # encounter row gets the right clinic_id. Confirm zero unmatched rows
 # before moving on -- if you see NAs in clinic_id after the join, don't
 # just drop them; find out why they didn't match.
+
 ```
 
 ## 4. Build the monthly denominator
