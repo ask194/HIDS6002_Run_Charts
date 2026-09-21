@@ -11,36 +11,21 @@ execute:
 
 ## Background
 
-You're a junior data analyst at a healthcare system. Department
-leadership has asked your team for an analysis of **trends in HbA1c
-control at four clinics** — is control improving, holding steady, or
-slipping, clinic by clinic?
+You're a junior data analyst at a healthcare system. Department leadership has asked your team for an analysis of **trends in HbA1c control at four clinics** — is control improving, holding steady, or slipping, clinic by clinic?
 
-Your data engineer pulled the data, and — kind of lazily — handed you
-**three separate files** instead of one clean extract:
+Your data engineer pulled the data, and — kind of lazily — handed you **three separate files** instead of one clean extract:
 
-- `encounters.csv` — one row per patient encounter, but instead of the
-  clinic name it only lists `provider_id` (apparently linking encounters
-  to clinics was somebody else's job)
-- `labs.csv` — one row per lab result
-- `provider_lookup.csv` — the file that actually maps each `provider_id`
-  to a clinic, which someone should have joined in before handing this
-  to you
+-   `encounters.csv` — one row per patient encounter, but instead of the clinic name it only lists `provider_id` (apparently linking encounters to clinics was somebody else's job)
+-   `labs.csv` — one row per lab result
+-   `provider_lookup.csv` — the file that actually maps each `provider_id` to a clinic, which someone should have joined in before handing this to you
 
-Before you got to the data, your senior colleague started this
-document to lay out what's needed — but only got as far as comments.
-The code is yours to write. Today you'll get **Clinics A and C** done;
-the other two are this week's homework.
+Before you got to the data, your senior colleague started this document to lay out what's needed — but only got as far as comments. The code is yours to write. Today you'll get **Clinics A and C** done; the other two are this week's homework.
 
 ## What "in control" means here
 
-> **Denominator (per clinic, per month):** number of distinct patients
-> with at least one encounter at that clinic that month.
+> **Denominator (per clinic, per month):** number of distinct patients with at least one encounter at that clinic that month.
 >
-> **Numerator (per clinic, per month):** of those, how many have an
-> `HbA1c` lab result recorded **that same month** below 8%. A patient
-> with no HbA1c result that month does not count — a missing test isn't
-> the same as good control.
+> **Numerator (per clinic, per month):** of those, how many have an `HbA1c` lab result recorded **that same month** below 8%. A patient with no HbA1c result that month does not count — a missing test isn't the same as good control.
 
 These files are not clean. Budget real time for step 2.
 
@@ -49,6 +34,7 @@ These files are not clean. Budget real time for step 2.
 #| message: false
 #install.packages("readr")
 #install.packages("qicharts2")
+#install.packages("rmarkdown")
 library(readr)
 library(dplyr)
 library(lubridate)
@@ -74,10 +60,7 @@ glimpse(labs)
 glimpse(lookup)
 ```
 
-Notice `encounters` has `provider_id`, not `clinic_id` — that's the
-"three files instead of one" problem in a nutshell. Look closely at the
-date columns in both files, and at `result_value` in `labs`, before you
-go further.
+Notice `encounters` has `provider_id`, not `clinic_id` — that's the "three files instead of one" problem in a nutshell. Look closely at the date columns in both files, and at `result_value` in `labs`, before you go further.
 
 ## 2. Clean the dates
 
@@ -162,19 +145,14 @@ go further.
 
 ## 8. Interpret, and draft a one-line status for leadership
 
-For each clinic, inspect the chart object's underlying data
-(`your_object$data`) for the `runs.signal` column, and write 2-3
-sentences plus a one-line summary you could drop into a status update.
+For each clinic, inspect the chart object's underlying data (`your_object$data`) for the `runs.signal` column, and write 2-3 sentences plus a one-line summary you could drop into a status update.
 
 *Clinic A:*
 
-> [Is there a signal? What does the pattern of points look like?]
-> **One-line status:** [e.g., "Clinic A: stable, no action needed."]
+> \[Is there a signal? What does the pattern of points look like?\] **One-line status:** \[e.g., "Clinic A: stable, no action needed."\]
 
 *Clinic C:*
 
-> [Is there a signal? Does a run chart's "unusually long run / unusually
-> few crossings" logic seem well-suited to whatever pattern you see
-> here, or can you imagine a pattern it would miss?]
+> \[Is there a signal? Does a run chart's "unusually long run / unusually few crossings" logic seem well-suited to whatever pattern you see here, or can you imagine a pattern it would miss?\]
 
-> **One-line status:** [your line here]
+> **One-line status:** \[your line here\]
