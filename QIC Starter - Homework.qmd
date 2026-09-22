@@ -1,9 +1,10 @@
 ---
-title: "Homework: HbA1c Control Trends — Clinics B & D, and a Simple ITS"
+title: "Homework: HbA1c Control Trends — Clinics B & D, and a Simple ITS v2"
 format:
   html:
     toc: true
     code-tools: true
+    embed-resources: true
 execute:
   echo: true
   warning: true
@@ -67,32 +68,60 @@ which have two additional problems A and C didn't.
 ```{r}
 #| label: denominator
 
-# TODO: same logic as class -- distinct patients per clinic per month,
-# filtered to Clinic B and Clinic D.
+# TODO: same logic as class,
+# filter to Clinic B and Clinic D.
+# set dates to month level
+# reduce to unique patients per clinic per month rows
+# count the number for rows
 ```
 
 ### Clean the labs and handle Task 2: implausible values
 
 ```{r}
-#| label: clean-labs
+#| label: clean-labs-filter
 
 # TODO: filter to test_name == "HbA1c", convert result_value to numeric,
-# drop non-numeric/missing entries, remove exact duplicates -- same as
+# drop non-numeric/missing entries, remove exact duplicates -- same logic as
 # class.
-#
+
+```
+
+```{r}
+#| label: clean-labs-filter
+
+
 # TODO (Task 2): before computing the numerator, add a plausible-range
 # filter on the numeric value (a reasonable range for this exercise is
-# roughly 4-15). Report how many rows this excludes.
+# roughly 4-15). Report how many rows this excludes. Also convert dates to month. 
+
 ```
 
 ### Build the numerator and assemble the measure table
 
 ```{r}
-#| label: numerator-and-assemble
+#| label: numerator-patients
 
-# TODO: same join-back-to-clinic-month logic as class, then assemble
-# clinic_id, month, denominator, numerator for Clinics B and D.
+# TODO: same join-back-to-clinic-month logic as class
+# First, identify unique patient visits in a month.
 ```
+
+```{r}
+#| label: numerator-labs
+# Finish generating a numerator - # of patients with controlled values (under 8)
+# Filter to controlled lab values, join to the patient-by month file above.
+# Identify unique patients per month per clinic
+# Count how many patients per month had controlled lab values. This is the numerator.
+# 
+
+```
+
+```{r}
+#| label: numerator-assembly
+# Join numerator and denominator together
+
+
+```
+
 
 ## Part 2: Control charts
 
@@ -137,7 +166,7 @@ which have two additional problems A and C didn't.
 ```{r}
 #| label: its-model
 
-# TODO: fit lm(rate ~ t + post + t_post, data = ...) and look at
+# TODO: fit lm(rate ~ t + post, data = ...) and look at
 # summary(). Extract/interpret the post and t_post coefficients.
 ```
 

@@ -1,0 +1,194 @@
+---
+title: "Solution: HbA1c Control Trends — Clinics A & C"
+format:
+  html:
+    toc: true
+    code-tools: true
+    embed-resources: true
+execute:
+  echo: true
+  warning: true
+---
+
+## Setup
+
+```{r}
+#| label: setup
+#| message: false
+
+library(readr)
+library(dplyr)
+library(lubridate)
+library(qicharts2)
+```
+
+## 1. Load and look
+
+```{r}
+#| label: load-data
+#| message: false
+
+encounters <- read_csv("data/encounters.csv")
+labs <- read_csv("data/labs.csv")
+lookup <- read_csv("data/provider_lookup.csv")
+glimpse(encounters)
+glimpse(lookup)
+```
+
+`encounter_date` and `result_date` are both `<chr>` — a mix of
+`YYYY-MM-DD` and `MM/DD/YYYY` strings. `encounters` has `provider_id`,
+not `clinic_id`; `provider_lookup` is the crosswalk that supplies it.
+
+## 2. Clean the dates
+
+```{r}
+#| label: parse-dates
+
+parse_mixed_date <- function(x) {
+  d_iso <- suppressWarnings(as.Date(x, format = "%Y-%m-%d"))
+  d_us  <- suppressWarnings(as.Date(x, format = "%m/%d/%Y"))
+  coalesce(d_iso, d_us)
+}
+
+encounters <- encounters %>% mutate(encounter_date = parse_mixed_date(encounter_date))
+labs <- labs %>% mutate(result_date = parse_mixed_date(result_date))
+
+sum(is.na(encounters$encounter_date))
+sum(is.na(labs$result_date))
+```
+
+## 3. Attach clinic_id to every encounter
+
+```{r}
+#| label: crosswalk-join
+
+encounters <- encounters %>% left_join(lookup, by = "provider_id")
+
+sum(is.na(encounters$clinic_id))
+```
+
+274 rows come out unmatched — but none of them belong to Clinic A or
+Clinic C. That problem is confined entirely to Clinics B and D, whose
+source data has a provider-ID formatting issue A and C don't have (more
+on that in the homework). Confirm that for yourself before moving on:
+
+```{r}
+#| label: crosswalk-check-ac
+
+table(encounters$clinic_id, useNA = "ifany")
+```
+
+## 4. Build the monthly denominator
+
+```{r}
+#| label: denominator
+
+denom <- encounters %>%
+  filter(clinic_id %in% c("Clinic A", "Clinic C")) %>%
+  mutate(month = floor_date(encounter_date, "month")) %>%
+  distinct(clinic_id, month, patient_id) %>%
+  count(clinic_id, month, name = "denominator")
+
+head(denom)
+```
+
+`distinct()` before `count()` is the key step — a patient can have 1-3
+encounters in the same month, and counting raw rows would overcount.
+
+## 5. Build the monthly numerator
+
+```{r}
+#| label: numerator
+
+hba1c_clean <- labs %>%
+  filter(test_name == "HbA1c") %>%
+  distinct(patient_id, result_date, test_name, result_value) %>%
+  mutate(result_value = suppressWarnings(as.numeric(result_value))) %>%
+  filter(!is.na(result_value)) %>%
+  mutate(month = floor_date(result_date, "month"))
+
+patient_clinic_month <- encounters %>%
+  filter(clinic_id %in% c("Clinic A", "Clinic C")) %>%
+  mutate(month = floor_date(encounter_date, "month")) %>%
+  distinct(clinic_id, month, patient_id)
+
+numer <- hba1c_clean %>%
+  filter(result_value < 8) %>%
+  inner_join(patient_clinic_month, by = c("patient_id", "month")) %>%
+  distinct(clinic_id, month, patient_id) %>%
+  count(clinic_id, month, name = "numerator")
+
+head(numer)
+```
+
+## 6. Put it together
+
+```{r}
+#| label: assemble
+
+measure <- denom %>%
+  left_join(numer, by = c("clinic_id", "month")) %>%
+  mutate(numerator = coalesce(numerator, 0L))
+
+head(measure)
+```
+
+## 7. Build the run charts
+
+```{r}
+#| label: run-chart-a
+
+q_a <- qic(
+  x = month, y = numerator, n = denominator,
+  data = measure %>% filter(clinic_id == "Clinic A") %>% arrange(month),
+  chart = "run", title = "Clinic A"
+)
+q_a
+```
+
+```{r}
+#| label: run-chart-c
+
+q_c <- qic(
+  x = month, y = numerator, n = denominator,
+  data = measure %>% filter(clinic_id == "Clinic C") %>% arrange(month),
+  chart = "run", title = "Clinic C"
+)
+q_c
+```
+
+## 8. Interpret, and a status line for leadership
+
+```{r}
+#| label: signals
+
+any(q_a$data$runs.signal, na.rm = TRUE)
+any(q_c$data$runs.signal, na.rm = TRUE)
+```
+
+*Clinic A:*
+
+No runs signal. The monthly rate bounces around a flat median with no
+unusually long run on one side and no unusually thin crossing count —
+the picture of ordinary common-cause variation.
+
+ **One-line status:** Clinic A — stable, no signal, no action needed.
+
+*Clinic C:*
+
+Also **no runs signal** on the run chart. But Clinic C is not actually 
+a "nothing happened" clinic. One specific month (September 2024) has a 
+rate far below every other month, an isolated dip that snaps right back 
+the next month. A run chart tests for *sustained* non-random patterns.
+A single extreme point, surrounded by ordinary values on both sides, 
+doesn't create a long run or thin out the crossing count enough to trip 
+either rule. **This is a real limitation of run charts**: well-suited to 
+persistent shifts, but capable of missing a single dramatic outlier entirely.
+That's exactly the gap a p-chart's 3-sigma control limits are built to
+catch. Keep this in mind: the homework uses `qic(chart = "p")`
+instead of plain run charts, specifically so isolated points don't
+slip through.
+
+**One-line status:** Clinic C — no signal detected by this chart type,
+but a closer look (control chart) is warranted before reporting "all
+clear" to leadership.
