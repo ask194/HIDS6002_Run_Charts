@@ -1,0 +1,150 @@
+---
+title: "Solution: Flu Shot Coverage"
+format:
+  html:
+    toc: true
+    code-tools: true
+    embed-resources: true
+execute:
+  echo: true
+  warning: true
+---
+
+## Setup
+
+```{r}
+library(RMariaDB)
+
+con <- dbConnect(
+  RMariaDB::MariaDB(),
+  host     = "hank.test",
+  dbname   = "synthea",
+  user     = "root",
+  password = "",
+  port     = 3306
+)
+```
+
+## Warm-up: what immunizations are on record?
+
+```{r}
+#| label: warmup-immunization-counts
+#| connection: con
+
+immunization_counts <- dbGetQuery(con, "
+SELECT DESCRIPTION, COUNT(*) AS n
+FROM immunizations
+GROUP BY DESCRIPTION
+ORDER BY n DESC")
+View(immunization_counts)
+
+```
+
+## Step 1: patients who've had a flu shot
+
+`EXISTS` answers a yes/no question per patient — it never actually
+returns rows from `immunizations`, so a patient with five flu shots on
+record still appears exactly once here.
+
+```{r}
+#| label: patients-with-flu-shot
+#| connection: con
+
+patients_with_flu_shot <- dbGetQuery(con, "
+SELECT p.Id, p.LAST
+FROM patients p
+WHERE EXISTS (
+    SELECT 1 FROM immunizations i
+    WHERE i.PATIENT = p.Id AND i.DESCRIPTION LIKE '%Influenza%'
+)")
+View(patients_with_flu_shot)
+```
+
+## Step 2: who has, and who hasn't
+
+### First pass — watch what happens
+
+```{r}
+#| label: flu-shot-status-naive
+#| connection: con
+
+flu_shot_status_naive <- dbGetQuery(con, "
+SELECT
+    p.Id, p.LAST,
+    CASE WHEN i.PATIENT IS NOT NULL THEN 'Immunized' ELSE 'Not immunized' END AS flu_status
+FROM
+    patients p
+    LEFT JOIN immunizations i ON p.Id = i.PATIENT AND i.DESCRIPTION LIKE '%Influenza%'
+ORDER BY p.Id")
+View(flu_shot_status_naive)
+```
+
+A patient with **more than one** flu shot on record (a real-world
+pattern — flu vaccines are typically given annually) shows up more than
+once here, once per matching immunization row. This is exactly the same
+duplication issue as the hypertension file's very first "patients with
+hypertension" query: a `JOIN` (or `LEFT JOIN`) returns one row per
+*match*, not one row per patient, whenever the matched table can have
+more than one row per patient.
+
+### Last Flu Shot
+```{r}
+#| label: flu-shot-status-recent
+#| connection: con
+
+flu_shot_status <- dbGetQuery(con, "
+SELECT
+    p.Id, p.LAST,
+    CASE WHEN MAX(i.DATE) > '2020-01-01' THEN 'Immunized' ELSE 'Not immunized' END AS flu_status,
+    MAX(i.DATE) AS last_flu_shot_date
+FROM
+    patients p
+    LEFT JOIN immunizations i ON p.Id = i.PATIENT AND i.DESCRIPTION LIKE '%Influenza%'
+GROUP BY p.Id, p.LAST
+ORDER BY flu_status, p.Id")
+View(flu_shot_status)
+```
+
+```{r}
+#| label: another solution
+#| connection: con
+flu_shot_status_b <- dbGetQuery(con, "
+Select
+	b.id
+	, b.LAST
+	, (case	
+		when b.DESCRIPTION is null then 'Not Recently Immunized'
+		else 'Recently Immunized'
+		END) AS flu_status
+	, b.DATE
+FROM
+	(select
+		p.id
+		, p.last
+		, p.FIRST
+		, i.DESCRIPTION
+		, i.DATE
+		, ROW_NUMBER() over (Partition By p.id order by i.Date DESC) rownum
+	from
+		patients p
+		left join immunizations i
+			on p.Id = i.PATIENT
+			and lower(i.description) like '%influ%'
+			and i.DATE > '2020-01-01') b
+WHERE
+	b.rownum = 1
+ORDER BY
+	b.DATE
+	, flu_status
+	, b.Id
+")
+```
+
+## Cleanup
+
+```{r}
+#| label: disconnect
+
+dbDisconnect(con)
+
+```

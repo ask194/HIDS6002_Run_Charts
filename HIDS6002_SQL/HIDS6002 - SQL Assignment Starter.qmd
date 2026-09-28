@@ -1,0 +1,114 @@
+---
+title: "Homework: Diabetes SQL Practice + Preparing Data for Charts"
+format:
+  html:
+    toc: true
+    code-tools: true
+    embed-resources: true
+execute:
+  echo: true
+  warning: true
+---
+
+## Setup
+
+```{r}
+## Any errors here and you probably need to install packages.
+#install.packages(c("RMariaDB", "qicharts2", "ggplot2", "dplyr"))
+library(RMariaDB)
+library(qicharts2)
+library(ggplot2)
+library(dplyr)
+
+con <- dbConnect(
+  RMariaDB::MariaDB(),
+  host     = "hank.test",
+  dbname   = "synthea",
+  user     = "root",
+  password = "",
+  port     = 3306
+)
+```
+
+## Part 1: Diabetes SQL practice
+## Find the diabetes condition codes
+
+## Finding conditions like diabetes. Notice the Quarto / R structure.
+## Each chunk starts with ```{r} if you are writing in R, and includes a label
+## and connection. We are saving SQL query results to R data frames by wrapping
+## the query in df <- dbGetQuery(con, "QUERY")
+## Close each chunk with ```.
+```{r}
+#| label: diabetes-codes
+#| connection: con
+
+diabetes_codes <- dbGetQuery(con, "select distinct
+    DESCRIPTION
+    , CODE
+from
+    conditions
+where
+    lower(DESCRIPTION) LIKE '%diab%'
+order by
+    DESCRIPTION
+    ")
+```
+
+### Patients with abnormal glucose (< 75 or > 150)
+### Which of those patients are on insulin, and which aren't
+
+## Part 2: Preparing data for three charts
+### Build `monthly_glucose_control`
+### Build `glucose_by_insulin`
+
+
+### Run chart (provided — do not edit)
+
+```{r}
+#| label: run-chart
+#| connection: con
+
+qic(
+  x = month, y = numerator, n = denominator,
+  data = monthly_glucose_control,
+  chart = "run",
+  title = "Glucose In Range \u2014 Run Chart"
+)
+```
+
+### Control chart (provided — do not edit)
+
+```{r}
+#| label: control-chart
+#| connection: con
+
+qic(
+  x = month, y = numerator, n = denominator,
+  data = monthly_glucose_control,
+  chart = "p",
+  title = "Glucose In Range \u2014 Control Chart"
+)
+```
+
+### ggplot (provided — do not edit)
+
+```{r}
+#| label: glucose-ggplot
+
+ggplot(glucose_by_insulin, aes(x = glucose_date, y = glucose_value, color = insulin_status)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = c(75, 150), linetype = "dashed", color = "gray40") +
+  labs(
+    title = "Glucose Readings by Insulin Status",
+    x = "Date", y = "Glucose (mg/dL)", color = "Insulin status"
+  ) +
+  theme_minimal()
+```
+
+## Cleanup
+
+```{r}
+#| label: disconnect
+
+dbDisconnect(con)
+```

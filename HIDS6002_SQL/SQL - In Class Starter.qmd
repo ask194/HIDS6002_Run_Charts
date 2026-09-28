@@ -1,0 +1,101 @@
+---
+title: "In-Class: Flu Shot Coverage"
+format:
+  html:
+    toc: true
+    code-tools: true
+    embed-resources: true
+execute:
+  echo: true
+  warning: true
+---
+
+## Setup
+
+```{r}
+#install.packages(c("RMariaDB"))
+library(RMariaDB)
+
+con <- dbConnect(
+  RMariaDB::MariaDB(),
+  host     = "hank.test",
+  dbname   = "synthea",
+  user     = "root",
+  password = "",
+  port     = 3306
+)
+```
+
+::: {.callout-note}
+Today's queries all use `patients` and `immunizations`. Before writing
+anything, take a minute to look at what's actually in these tables. Clicking
+the magnifying glass, using `DESCRIBE immunizations;` and a quick `SELECT * FROM immunizations LIMIT 10;` will save you guessing at column names.
+:::
+
+## Warm-up: what immunizations are on record?
+
+```{r}
+#| label: warmup-immunization-counts
+#| connection: con
+
+# TODO: count how many records exist per immunization DESCRIPTION,
+# most common first. Same GROUP BY + COUNT(*) pattern you already know.
+```
+
+## Step 1: patients who've had a flu shot
+
+Same shape as "patients who have a hypertension diagnosis" from the
+lecture. A yes/no question about each patient, answered with `EXISTS`.
+
+```{r}
+#| label: patients-with-flu-shot
+#| connection: con
+
+# TODO: use EXISTS to find patients with at least one immunization
+# record whose DESCRIPTION contains "Influenza".
+```
+
+## Step 2: who has, and who hasn't
+
+Now the "with and without" version in one query. This is the same shape 
+as the hypertension file's "patients with and without hypertension" section.
+
+```{r}
+#| label: flu-shot-status-naive
+#| connection: con
+
+# TODO: LEFT JOIN patients to immunizations (matched on the same
+# Influenza filter as Step 1), and use CASE WHEN to label each patient
+# "Immunized" or "Not immunized". Don't add DISTINCT yet -- look closely
+# at the result first.
+```
+
+**Before you move on:** does every patient appear in your result exactly
+once? If not, why not? (Hint: think back to why the hypertension file's
+first "patients with hypertension" query could return the same patient
+twice.)
+
+
+## Step 3: define "immunized" as up to date, not just ever vaccinated
+
+A flu shot from 2015 shouldn't count as current. Revise your query so
+that a patient only counts as `"Immunized"` if their **most recent**
+flu shot was after 2020 — and include that most-recent date as its own
+column, so the result shows its own evidence rather than just a label.
+
+```{r}
+#| label: flu-shot-status-recent
+#| connection: con
+
+# TODO: rewrite Step 2's query using GROUP BY instead of a plain LEFT JOIN, so you can pull MAX(i.DATE) per patient as last_flu_shot_date. Then base the CASE WHEN on whether that # date is after 2020, not just on whether a matching row exists.
+
+# Think about what MAX(i.DATE) actually returns for a patient # with NO flu shot at all -- and why comparing that result to a # date still gives you the right answer in your CASE WHEN, # # without needing a separate check for "no record."
+```
+
+## Cleanup
+
+```{r}
+#| label: disconnect
+
+dbDisconnect(con)
+```

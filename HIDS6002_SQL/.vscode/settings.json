@@ -1,0 +1,19 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "hank.test",
+            "port": 3306,
+            "driver": "MariaDB",
+            "name": "test",
+            "username": "root",
+            "database": "synthea",
+            "password": ""
+        }
+    ]
+}

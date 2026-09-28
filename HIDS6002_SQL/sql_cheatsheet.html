@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>SQL Cheatsheet</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="sql-syntax-reference-mariadb">SQL Syntax Reference
+(MariaDB)</h1>
+<h2 id="a-note-on-comments">1. A note on comments</h2>
+<p>In MariaDB, a <code>--</code> comment must be followed by <strong>at
+least one space</strong> (or the end of the line) to be recognized as a
+comment at all.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="dv">5</span> <span class="co">--3;     -- returns 8  (parsed as 5 - -3, NOT a comment!)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="dv">5</span> <span class="co">-- 3;    -- returns 5  (correctly a comment)</span></span></code></pre></div>
+<p>Always put a space after <code>--</code>. This is not a style
+preference — it’s the difference between a comment and a silent
+arithmetic error.</p>
+<hr />
+<h2 id="basic-select">2. Basic SELECT</h2>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> column_a, column_b</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_a</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="op">=</span> <span class="st">&#39;x&#39;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> column_a;</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> <span class="kw">category</span> <span class="kw">FROM</span> table_a;   <span class="co">-- unique values only</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> table_a <span class="kw">LIMIT</span> <span class="dv">100</span>;          <span class="co">-- a quick peek at a big table</span></span></code></pre></div>
+<p><strong><code>SELECT *</code> is for exploring, not for final
+queries.</strong> It’s the right tool the first time you look at an
+unfamiliar table; a finished query should name its columns explicitly,
+so it doesn’t silently change shape if the table gains a column
+later.</p>
+<hr />
+<h2 id="filtering">3. Filtering</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="op">=</span> <span class="st">&#39;x&#39;</span>                      <span class="co">-- equals</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="op">!=</span> <span class="st">&#39;x&#39;</span>                     <span class="co">-- not equals</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="fu">value</span> <span class="op">&gt;</span> <span class="dv">100</span>                         <span class="co">-- comparison</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="kw">IN</span> (<span class="st">&#39;x&#39;</span>, <span class="st">&#39;y&#39;</span>)              <span class="co">-- matches any of several values</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="kw">LIKE</span> <span class="st">&#39;%text%&#39;</span>              <span class="co">-- contains &quot;text&quot; anywhere</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="fu">lower</span>(<span class="kw">category</span>) <span class="kw">LIKE</span> <span class="st">&#39;%text%&#39;</span>       <span class="co">-- case-insensitive contains</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="fu">value</span> <span class="kw">BETWEEN</span> <span class="dv">75</span> <span class="kw">AND</span> <span class="dv">150</span>            <span class="co">-- inclusive range</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="kw">IS</span> <span class="kw">NULL</span>                    <span class="co">-- missing value</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>                <span class="co">-- present value</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="op">=</span> <span class="st">&#39;x&#39;</span> <span class="kw">AND</span> <span class="fu">value</span> <span class="op">&gt;</span> <span class="dv">100</span>      <span class="co">-- multiple conditions = AND</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="op">=</span> <span class="st">&#39;x&#39;</span> <span class="kw">OR</span> <span class="kw">category</span> <span class="op">=</span> <span class="st">&#39;y&#39;</span>    <span class="co">-- either condition</span></span></code></pre></div>
+<p><strong><code>= NULL</code> never matches anything</strong>
+<code>NULL</code> means “unknown,” and nothing is known to equal an
+unknown. Always use <code>IS NULL</code> / <code>IS NOT NULL</code> for
+missing values, never <code>= NULL</code>.</p>
+<hr />
+<h2 id="joining-tables">4. Joining tables</h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> a.<span class="kw">id</span>, a.<span class="kw">category</span>, b.<span class="fu">value</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_a a</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> table_b b <span class="kw">ON</span> a.<span class="kw">id</span> <span class="op">=</span> b.<span class="kw">id</span>;</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> a.<span class="kw">id</span>, a.<span class="kw">category</span>, b.<span class="fu">value</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_a a</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">LEFT</span> <span class="kw">JOIN</span> table_b b <span class="kw">ON</span> a.<span class="kw">id</span> <span class="op">=</span> b.<span class="kw">id</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                        <span class="kw">AND</span> b.key_col <span class="op">=</span> <span class="st">&#39;k1&#39;</span>;</span></code></pre></div>
+<ul>
+<li><strong><code>JOIN</code></strong> (inner join) keeps only rows that
+matched in <em>both</em> tables: a row in <code>table_a</code> with no
+match in <code>table_b</code> disappears entirely.</li>
+<li><strong><code>LEFT JOIN</code></strong> keeps every row of
+<code>table_a</code>, whether or not it found a match in
+<code>table_b</code>. Where there’s no match, <code>table_b</code>’s
+columns come back <code>NULL</code>, which lets you ask “which rows had
+no match?” afterward with <code>WHERE some_column IS NULL</code>.</li>
+<li><strong>Where you put an extra condition changes what it
+does.</strong> A condition in the <code>ON</code> clause narrows
+<em>what counts as a match</em> (every row of <code>table_a</code> is
+still kept, just matched more narrowly). The same condition in the
+<code>WHERE</code> clause instead throws away non-matching rows
+entirely. A <code>LEFT JOIN</code>, putting a filter on the
+<em>right</em> table in <code>WHERE</code> turns it back into something
+that behaves like an inner join. If you want a left join to stay a left
+join, keep the filter on the joined table inside <code>ON</code>.</li>
+</ul>
+<p><strong>A row count can multiply unexpectedly after a join.</strong>
+If <code>table_b</code> has more than one matching row for a given
+<code>table_a</code> row, that <code>table_a</code> row comes back once
+<em>per match</em> — always sanity-check row counts before and after a
+join if you’re not sure the join key is unique on both sides.</p>
+<hr />
+<h2 id="exists-a-different-kind-of-filter">5. EXISTS — a different kind
+of filter</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> a.<span class="kw">id</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_a a</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">EXISTS</span> (</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">SELECT</span> <span class="dv">1</span> <span class="kw">FROM</span> table_b b</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">WHERE</span> b.<span class="kw">id</span> <span class="op">=</span> a.<span class="kw">id</span> <span class="kw">AND</span> b.key_col <span class="op">=</span> <span class="st">&#39;k1&#39;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
+<p><code>EXISTS</code> answers a yes/no question about each row of the
+outer query. It never actually returns columns from the inner query (the
+<code>SELECT 1</code> is just a convention; nothing about the
+<code>1</code> matters). This makes it useful for “does this
+patient/record have at least one matching row,” <strong>without</strong>
+multiplying the outer row if there happen to be several matches.</p>
+<p><strong>The trade-off:</strong> because <code>EXISTS</code> only
+checks <em>whether</em> a match exists, any columns you actually want
+<em>from</em> the matched row have to come from somewhere else — a
+separate <code>JOIN</code>, not the <code>EXISTS</code> subquery itself.
+Reach for <code>EXISTS</code> when you’re filtering (“only rows that
+have a match”), and a <code>JOIN</code> when you need to pull real
+column values across.</p>
+<hr />
+<h2 id="aggregation">6. Aggregation</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">category</span>, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> n</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_a</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> <span class="kw">category</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> n <span class="kw">DESC</span>;</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, <span class="fu">SUM</span>(<span class="fu">value</span>) <span class="kw">AS</span> total</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_b</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> <span class="kw">id</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="kw">HAVING</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="op">&gt;</span> <span class="dv">1</span>;          <span class="co">-- filters groups, applied AFTER grouping</span></span></code></pre></div>
+<p><strong><code>WHERE</code> vs. <code>HAVING</code>:</strong>
+<code>WHERE</code> filters individual rows <em>before</em> grouping
+happens; <code>HAVING</code> filters whole groups <em>after</em>
+aggregation. A condition on an aggregate function
+(<code>COUNT(*)</code>, <code>SUM(...)</code>) has to go in
+<code>HAVING</code>. <code>WHERE COUNT(*) &gt; 1</code> is not valid
+SQL, because <code>WHERE</code> runs before <code>COUNT(*)</code> has
+been computed at all.</p>
+<hr />
+<h2 id="case-when-a-conditional-column">7. CASE WHEN — a conditional
+column</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">value</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">CASE</span> <span class="cf">WHEN</span> <span class="fu">value</span> <span class="op">&gt;</span> <span class="dv">150</span> <span class="cf">THEN</span> <span class="st">&#39;high&#39;</span> <span class="cf">ELSE</span> <span class="st">&#39;normal&#39;</span> <span class="cf">END</span> <span class="kw">AS</span> flag</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_b;</span></code></pre></div>
+<p>Reads top to bottom, first match wins — you can chain multiple
+<code>WHEN ... THEN</code> clauses before the final <code>ELSE</code>. A
+common pattern for turning a join’s match/no-match result into a
+readable label:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">CASE</span> <span class="cf">WHEN</span> b.<span class="kw">id</span> <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="cf">THEN</span> <span class="st">&#39;matched&#39;</span> <span class="cf">ELSE</span> <span class="st">&#39;unmatched&#39;</span> <span class="cf">END</span></span></code></pre></div>
+<hr />
+<h2 id="type-conversion-and-dates">8. Type conversion and dates</h2>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">CAST</span>(<span class="fu">value</span> <span class="kw">AS</span> <span class="dt">float</span>)                          <span class="co">-- text -&gt; number</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">CAST</span>(<span class="fu">value</span> <span class="kw">AS</span> <span class="dt">int</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>DATE_FORMAT(date_col, <span class="st">&#39;%Y-%m-01&#39;</span>)             <span class="co">-- snap any date to the 1st of its month</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>DATE_FORMAT(date_col, <span class="st">&#39;%Y-%m-%d&#39;</span>)             <span class="co">-- reformat a date/datetime as plain YYYY-MM-DD</span></span></code></pre></div>
+<p><strong>A column can look numeric and still be stored as
+text.</strong> Comparing a text column to a number directly
+(<code>WHERE value &gt; 150</code>, when <code>value</code> is
+<code>VARCHAR</code>) can silently produce wrong results depending on
+how the database decides to compare them.
+<code>CAST(... AS float)</code> first makes the comparison
+unambiguous.</p>
+<p><strong><code>DATE_FORMAT()</code> returns a string, not a
+date.</strong> <code>DATE_FORMAT(date_col, '%Y-%m-01')</code> is great
+for <code>GROUP BY</code> (it collapses every day in a month down to one
+shared value), but the result comes back as text — if you need it back
+as a real date column afterward (e.g., once the query results land in
+R), it needs to be converted there, not assumed to already be one.</p>
+<hr />
+<h2 id="temporary-tables">9. Temporary tables</h2>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">DROP</span> <span class="kw">TABLE</span> <span class="cf">IF</span> <span class="kw">EXISTS</span> tmp_table;</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TEMPORARY</span> <span class="kw">TABLE</span> tmp_table (</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span> <span class="dt">VARCHAR</span>(<span class="dv">36</span>),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    flag <span class="dt">VARCHAR</span>(<span class="dv">20</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="kw">INSERT</span> <span class="kw">INTO</span> tmp_table (<span class="kw">id</span>, flag)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, <span class="st">&#39;seen&#39;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> table_a</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">category</span> <span class="op">=</span> <span class="st">&#39;x&#39;</span>;</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> tmp_table;</span></code></pre></div>
+<p>Useful when a result is going to be reused by more than one later
+query, or when a multi-step calculation is easier to read broken into
+stages. <strong>A temporary table only exists for the current
+connection/session</strong> — it disappears when that connection closes,
+and it’s invisible to any other connection in the meantime.
+<code>DROP TABLE IF EXISTS</code> before creating one is defensive: it
+means re-running your script from the top doesn’t error out on a table
+that’s already there from last time.</p>
+<hr />
+<h2 id="running-sql-from-r">10. Running SQL from R</h2>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RMariaDB)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># a query that returns rows -&gt; data.frame</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, <span class="st">&quot;SELECT * FROM table_a WHERE category = &#39;x&#39;&quot;</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># a statement with no rows to return (DROP / CREATE / INSERT / UPDATE)</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">dbExecute</span>(con, <span class="st">&quot;DROP TABLE IF EXISTS tmp_table&quot;</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="fu">dbExecute</span>(con, <span class="st">&quot;CREATE TEMPORARY TABLE tmp_table (id VARCHAR(36))&quot;</span>)</span></code></pre></div>
+<p><strong><code>dbGetQuery()</code> is for <code>SELECT</code>;
+<code>dbExecute()</code> is for everything else.</strong></p>
+<hr />
+<h2 id="quick-lookup">Quick lookup</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>I want to…</th>
+<th>Syntax</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unique values only</td>
+<td><code>SELECT DISTINCT ...</code></td>
+</tr>
+<tr>
+<td>Match any of several values</td>
+<td><code>WHERE x IN (...)</code></td>
+</tr>
+<tr>
+<td>Partial text match</td>
+<td><code>WHERE x LIKE '%text%'</code></td>
+</tr>
+<tr>
+<td>Inclusive range</td>
+<td><code>WHERE x BETWEEN a AND b</code></td>
+</tr>
+<tr>
+<td>Check for missing values</td>
+<td><code>WHERE x IS NULL</code> / <code>IS NOT NULL</code></td>
+</tr>
+<tr>
+<td>Keep only matched rows</td>
+<td><code>JOIN</code></td>
+</tr>
+<tr>
+<td>Keep all rows, matched or not</td>
+<td><code>LEFT JOIN</code></td>
+</tr>
+<tr>
+<td>Filter to “has at least one match” without duplicating rows</td>
+<td><code>WHERE EXISTS (...)</code></td>
+</tr>
+<tr>
+<td>Count / sum per group</td>
+<td><code>GROUP BY</code> + <code>COUNT(*)</code> /
+<code>SUM(...)</code></td>
+</tr>
+<tr>
+<td>Filter on a group’s aggregate value</td>
+<td><code>HAVING</code> (not <code>WHERE</code>)</td>
+</tr>
+<tr>
+<td>Conditional label/flag</td>
+<td><code>CASE WHEN ... THEN ... ELSE ... END</code></td>
+</tr>
+<tr>
+<td>Text to number</td>
+<td><code>CAST(x AS float)</code></td>
+</tr>
+<tr>
+<td>Snap a date to the start of its month</td>
+<td><code>DATE_FORMAT(x, '%Y-%m-01')</code></td>
+</tr>
+<tr>
+<td>Reusable intermediate result</td>
+<td><code>CREATE TEMPORARY TABLE</code></td>
+</tr>
+<tr>
+<td>Run a SELECT from R</td>
+<td><code>dbGetQuery(con, "...")</code></td>
+</tr>
+<tr>
+<td>Run DDL/DML from R</td>
+<td><code>dbExecute(con, "...")</code></td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
