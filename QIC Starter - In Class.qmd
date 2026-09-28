@@ -70,7 +70,9 @@ Notice `encounters` has `provider_id`, not `clinic_id` — that's the "three fil
 # TODO: write a helper that parses a character vector containing a MIX
 # of "YYYY-MM-DD" and "MM/DD/YYYY" strings into a single Date column.
 # Apply it to encounter_date and result_date.
-#
+sum(is.na(encounters$encounter_date)) == 0
+sum(is.na(labs$result_date)) == 0
+
 # Sanity check afterward: zero NAs in either parsed date column.
 
 ```
@@ -84,6 +86,8 @@ Notice `encounters` has `provider_id`, not `clinic_id` — that's the "three fil
 # encounter row gets the right clinic_id. Confirm zero unmatched rows
 # before moving on -- if you see NAs in clinic_id after the join, don't
 # just drop them; find out why they didn't match.
+encounters <- encounters %>%
+  left_join(lookup, by = "provider_id")
 
 ```
 
@@ -95,7 +99,8 @@ Notice `encounters` has `provider_id`, not `clinic_id` — that's the "three fil
 # TODO: for Clinics A and C, count DISTINCT patients per clinic per
 # month. Watch out -- a patient can have more than one encounter in the
 # same month, so a plain row count will overcount.
-#
+month = floor_date(encounter_date, "month")
+
 # Hint: lubridate::floor_date(date, "month") turns any date into the
 # first of its month, a convenient grouping key.
 ```
@@ -109,7 +114,10 @@ Notice `encounters` has `provider_id`, not `clinic_id` — that's the "three fil
 # numeric -- what happens to entries that aren't valid numbers? Remove
 # exact duplicate rows. Then, for each clinic and month, count DISTINCT
 # patients with a qualifying (< 8) result recorded that month.
-#
+n_distinct(patient_id)
+filter(test_name == "HbA1c")
+as.numeric(result_value)
+
 # labs alone don't carry clinic_id -- you'll need the joined encounter
 # table from step 3 to know which clinic-month a given result belongs
 # to.
@@ -130,6 +138,10 @@ Notice `encounters` has `provider_id`, not `clinic_id` — that's the "three fil
 
 ```{r}
 #| label: run-chart-a
+qic(
+  data,
+  chart = "run"
+)
 
 # TODO: filter to Clinic A and pass to qic() with chart = "run". A run
 # chart plots the median as a flat reference line and applies the

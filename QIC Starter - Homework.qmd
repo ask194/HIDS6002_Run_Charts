@@ -41,7 +41,13 @@ which have two additional problems A and C didn't.
 ### Parse dates (same as class)
 
 ```{r}
-#| label: parse-dates
+#| label: parse-dates 
+encounters$encounter_date <- parse_date_time(encounters$encounter_date, orders = c("ymd", "mdy"))
+
+labs$result_date <- parse_date_time(labs$result_date,orders = c("ymd", "mdy"))
+
+sum(is.na(encounters$encounter_date)) == 0
+sum(is.na(labs$result_date)) == 0
 
 # TODO: reuse your mixed-date parser from class on encounter_date and
 # result_date.
@@ -53,11 +59,18 @@ which have two additional problems A and C didn't.
 #| label: standardize-and-join
 
 # TODO: first, try the plain join from class:
-#   encounters %>% left_join(lookup, by = "provider_id")
+
 # and check how many rows come back with a missing clinic_id. Then look
 # at a sample of the unmatched provider_id values -- what's inconsistent
 # about them relative to provider_lookup.csv?
-#
+encounters$provider_id <- toupper(trimws(encounters$provider_id))
+lookup$provider_id <- toupper(trimws(lookup$provider_id))
+
+encounters <- encounters %>% left_join(lookup, by = "provider_id")
+
+sum(is.na(encounters$clinic_id))
+
+
 # TODO: create a standardized version of provider_id on BOTH tables
 # (case + whitespace), then join on the standardized version. Confirm
 # zero unmatched rows afterward.
@@ -73,6 +86,15 @@ which have two additional problems A and C didn't.
 # set dates to month level
 # reduce to unique patients per clinic per month rows
 # count the number for rows
+denominator <- encounters %>%
+  filter(clinic_id %in% c("Clinic B", "Clinic D")) %>%
+  mutate(month = floor_date(encounter_date, "month")) %>%
+  distinct(clinic_id, month, patient_id) %>%
+  count(clinic_id, month, name = "denominator")
+
+
+
+
 ```
 
 ### Clean the labs and handle Task 2: implausible values
@@ -83,16 +105,28 @@ which have two additional problems A and C didn't.
 # TODO: filter to test_name == "HbA1c", convert result_value to numeric,
 # drop non-numeric/missing entries, remove exact duplicates -- same logic as
 # class.
+labs <- labs %>%
+  filter(test_name == "HbA1c") %>%
+  mutate(result_value = as.numeric(result_value)) %>%
+  filter(!is.na(result_value)) %>%
+  distinct()
+
+labs
+
 
 ```
 
 ```{r}
-#| label: clean-labs-filter
-
+#| label: clean-labs-filter1
 
 # TODO (Task 2): before computing the numerator, add a plausible-range
 # filter on the numeric value (a reasonable range for this exercise is
 # roughly 4-15). Report how many rows this excludes. Also convert dates to month. 
+sum(labs$result_value < 4 | labs$result_value > 15)
+
+labs <- labs %>%
+  filter(result_value >= 4, result_value <= 15) %>%
+  mutate(month = floor_date(result_date, "month"))
 
 ```
 
@@ -103,6 +137,14 @@ which have two additional problems A and C didn't.
 
 # TODO: same join-back-to-clinic-month logic as class
 # First, identify unique patient visits in a month.
+patients <- encounters %>%
+  filter(clinic_id %in% c("Clinic B", "Clinic D")) %>%
+  mutate(month = floor_date(encounter_date, "month")) %>%
+  distinct(clinic_id, month, patient_id)
+
+patients
+
+
 ```
 
 ```{r}
@@ -112,6 +154,13 @@ which have two additional problems A and C didn't.
 # Identify unique patients per month per clinic
 # Count how many patients per month had controlled lab values. This is the numerator.
 # 
+numerator <- labs %>%
+  filter(result_value < 8) %>%
+  inner_join(patients, by = c("patient_id", "month")) %>%
+  distinct(clinic_id, month, patient_id) %>%
+  count(clinic_id, month, name = "numerator")
+
+numerator
 
 ```
 
@@ -119,6 +168,14 @@ which have two additional problems A and C didn't.
 #| label: numerator-assembly
 # Join numerator and denominator together
 
+measure <- denominator %>%
+  left_join(numerator, by = c("clinic_id", "month")) %>%
+  mutate(
+    numerator = ifelse(is.na(numerator), 0, numerator),
+    rate = numerator / denominator
+  )
+
+measure
 
 ```
 
@@ -127,6 +184,17 @@ which have two additional problems A and C didn't.
 
 ```{r}
 #| label: chart-b
+b <- measure %>%
+  filter(clinic_id == "Clinic B")
+
+chart_b <- qic(
+  x = b$numerator,
+  n = b$denominator,
+  chart = "p"
+)
+
+print(chart_b)
+
 
 # TODO: qic() with chart = "p" for Clinic B. Store the result.
 ```
@@ -135,25 +203,47 @@ which have two additional problems A and C didn't.
 
 > [3-5 sentences: signal present? sigma or runs? plausible cause? next
 > step?]
->
-> **One-line status:** [your line here]
+>signal is run as center line is at 53.8% and the data points the last 10 months are above center line and before months fluctuate around the center line.
+> **One-line status:** [Clinic B shows a positive signal with a run above the center line, indicating improvement in HbA1c control.]
 
 ```{r}
 #| label: chart-d
 
+
+d <- measure %>%
+  filter(clinic_id == "Clinic D")
+
+chart_d <- qic(
+  x = d$numerator,
+  n = d$denominator,
+  chart = "p"
+)
+print(chart_d)
 # TODO: qic() with chart = "p" for Clinic D.
 ```
 
 *Clinic D interpretation:*
 
 > [3-5 sentences.]
->
-> **One-line status:** [your line here]
+>Clinic D shows normal month-to-month variation with no clear points outside the control limits. There is no strong run signal suggesting a sustained change in the process.
+> **One-line status:** [Clinic D appears stable indicating consistent HBa1c control.]
 
 ## Part 3: A simple interrupted time series (Clinic B)
 
 ```{r}
 #| label: its-setup
+
+its_b <- measure %>%
+  filter(clinic_id == "Clinic B") %>%
+  arrange(month) %>%
+  mutate(
+    rate = numerator / denominator,
+    t = 1:n(),
+    post = ifelse(month >= as.Date("2025-03-01"), 1, 0),
+    t_post = ifelse(post == 1, t - sum(post == 0), 0)
+  )
+
+its_b
 
 # TODO: build a data frame for Clinic B with:
 #   - rate = numerator / denominator
@@ -167,6 +257,9 @@ which have two additional problems A and C didn't.
 #| label: its-model
 
 # TODO: fit lm(rate ~ t + post, data = ...) and look at
+its_model <- lm(rate ~ t + post + t_post, data = its_b)
+
+summary(its_model)
 # summary(). Extract/interpret the post and t_post coefficients.
 ```
 
@@ -177,3 +270,11 @@ which have two additional problems A and C didn't.
 > the control chart's signal already told you? Explain, in your own
 > words, what each method is actually testing and why they might (or
 > might not) agree.]
+
+post=tells us how observation is after intervention,it is significant
+t_post tells us how the trend is after intervention, it is not significant.
+The control chart shows a positive signal with a run above the center line, indicating improvement in HbA1c control. 
+
+```{r}
+summary(its_model)
+```
